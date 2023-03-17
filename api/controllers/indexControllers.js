@@ -3,6 +3,8 @@ const { catchAsyncErrors } = require("../middleware/catchAsyncErrors");
 const { sendtoken } = require("../utils/sendtoken");
 const { sendmail } = require("../utils/sendoptmail");
 const ErrorHandler = require("../utils/ErrorHandler");
+const ImageKit = require("../utils/imageKit");
+const resumeModel=require("../models/resumeModel")
 
 exports.homepage = (req, res, next) => {
   res.json({ message: "Homepage" });
@@ -66,4 +68,56 @@ exports.forgetpassword = catchAsyncErrors(async (req, res, next) => {
   user.password = req.body.password;
   await user.save();
   res.json({ message: "Password Changed Successfully", success: true });
+});
+exports.resetpassword = catchAsyncErrors(async (req, res, next) => {
+  const user = await userModel
+    .findById(req.params.id)
+    .select("+password")
+    .exec();
+  const isMatch = user.comparepassword(req.body.oldpassword);
+  if (!isMatch) return next(new ErrorHandler("Old Password is incorrect", 401));
+
+  user.password = req.body.newpassword;
+  await user.save();
+  res.json({ message: "Password Changed Successfully", success: true });
+});
+
+exports.updateuser = catchAsyncErrors(async (req, res, next) => {
+  await userModel.findByIdAndUpdate(req.params.id, req.body).exec();
+  res.status(200).json({
+    success: true,
+    message: "User updated successfully",
+  });
+});
+exports.updateavatar = catchAsyncErrors(async (req, res, next) => {
+  const user = await userModel.findById(req.params.id).exec();
+  const file = req.files.avatar;
+  const filename = `resumebuilder-${user._id}-${Date.now()}-${file.name}`;
+  if (user.file.avatar != "") {
+    await ImageKit.deleteFile(user.avatar.fileId);
+  }
+  const { fileId, url } = await ImageKit.uploadFile(file.data, filename);
+  user.avatar = { fileId, url };
+  await user.save();
+  res.status(200).json({
+    success: true,
+    message: "User updated successfully",
+  });
+});
+
+
+exports.createresume = catchAsyncErrors(async (req, res, next) => {
+  const user = await userModel.findById(req.params.id).exec();
+  const newresume = new resumeModel(req.body);
+  console.log(req.body);
+  user.resumes.push(newresume._id);
+  newresume.personalinfo = user._id;
+  res.status(201).json({ success: true, message: "New resume created" });
+});
+
+exports.readsingleresume = catchAsyncErrors(async (req, res, next) => {
+  const resume = await resumeModel.findById(req.params.id)
+    .populate("personalinfo")
+    .exec();
+  res.status(200).json({ success: true, resume });
 });

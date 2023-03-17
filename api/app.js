@@ -1,4 +1,4 @@
-require("dotenv").config({ path: "./.env" });
+require("dotenv").config({ path: "../.env" });
 const express = require("express");
 const app = express();
 
@@ -17,11 +17,11 @@ app.use(express.urlencoded({ extended: false }));
 const session = require("express-session");
 const cookieparser = require("cookie-parser");
 app.use(
-    session({
-        resave: true,
-        saveUninitialized: true,
-        secret: "secret",//process.env.EXPRESS_SESSION_SECRET,
-    })
+  session({
+    resave: true,
+    saveUninitialized: true,
+    secret: "secret", //process.env.EXPRESS_SESSION_SECRET,
+  })
 );
 app.use(cookieparser());
 // express fileuploader
@@ -34,13 +34,10 @@ app.use("/", indexRoute);
 
 // error handler
 const ErrorHandler = require("./utils/ErrorHandler");
-const {createErrors} = require("./middleware/error");
+const { createErrors } = require("./middleware/error");
 app.all("*", (req, res, next) => {
-    next(new ErrorHandler(`Request URL ${req.path} not found`, 404));
+  next(new ErrorHandler(`Request URL ${req.path} not found`, 404));
 });
 app.use(createErrors);
 const Port = 3000;
-app.listen(
-    Port,
-    console.log(`Server running on port ${Port}`)
-);
+app.listen(Port, console.log(`Server running on port ${Port}`));
